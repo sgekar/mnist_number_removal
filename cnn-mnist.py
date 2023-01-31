@@ -1,13 +1,8 @@
 #!/usr/bin/env python
 # coding: utf-8
-
-# # **Network methods defined basic_blocks**
-
-# In[2]:
-
-
-#
-# https://github.com/GunhoChoi/Kind-PyTorch-Tutorial/blob/master/12_Semantic_Segmentation/Basic_blocks.py
+# References
+#     https://github.com/GunhoChoi/Kind-PyTorch-Tutorial/ 
+#     https://lmb.informatik.uni-freiburg.de/people/ronneber/u-net/index.html
 #
 import torch
 import torch.nn as nn
@@ -61,11 +56,6 @@ def conv_block_3(in_dim,out_dim,act_fn,stride,padding):
 
 
 # # **Unet Generator**
-
-# In[3]:
-
-
-#from basic_blocks import * 
 
 class UnetGenerator(nn.Module):
 
@@ -134,12 +124,6 @@ class UnetGenerator(nn.Module):
 
 
 # # Fusionnet Generator
-
-# In[4]:
-
-
-#from Basic_blocks import * 
-
 
 class Conv_residual_conv(nn.Module):
 
@@ -265,15 +249,6 @@ class FusionGenerator(nn.Module):
 
 # ## Set up network
 
-# In[10]:
-
-
-# Semantic Segmentation
-# Code by GunhoChoi
-# https://github.com/GunhoChoi/Kind-PyTorch-Tutorial
-
-#from fusionnet import * 
-#from unet import *
 import numpy as np
 import matplotlib.pyplot as plt
 import argparse
@@ -335,8 +310,6 @@ optimizer = torch.optim.Adam(generator.parameters(),lr=lr)
 
 # # Load Data
 
-# In[33]:
-
 
 print(mnist_train.__len__())
 print(mnist_test.__len__())
@@ -353,9 +326,6 @@ test_loader = torch.utils.data.DataLoader(dataset=mnist_test,batch_size=batch_si
 
 
 # ## Train
-
-# In[6]:
-
 
 # Train Model with train data
 # In order to use GPU you need to move all Variables and model by Module.cuda()
@@ -410,89 +380,54 @@ torch.save({
     'loss': loss.detach().cpu().numpy(),
     }, "./trained_models/saved_model_epoch_{}.pt".format(epoch))
 
-"""
-torch.save({
-            'epoch': epoch,
-            'model_state_dict': sd,
-            'optimizer_state_dict': optimizer.state_dict(),
-            'loss': loss.detach().cpu().numpy(),
-            }, './saved_final_model_epoch_{}_{}.pt'.format(epoch,batch_number))
-"""
-
 
 
 # original saved file with DataParallel
 #
 #unet_restored.load_state_dict(torch.load('./saved_model_epoch_14_363.pt'))
 #
-
-state_dict = torch.load('./trained_models/saved_model_epoch_23.pt')
-print("\n**\n",state_dict.keys(),"\n**\n")
-unet_restored = UnetGenerator(1,1,64)
-
-#unet_restored.load_state_dict(torch.load("./trained_models/saved_model_epoch_23.pt"))
-#unet_restored.to(device)
-
-
 #
-#create new OrderedDict that does not contain module.
+
+want_to_test = False
+
+if want_to_test:
+	state_dict = torch.load('./trained_models/saved_model_epoch_23.pt')
+	print("\n**\n",state_dict.keys(),"\n**\n")
+	unet_restored = UnetGenerator(1,1,64)
+
+	#
+	#create new OrderedDict that does not contain module.
+	#
+	from collections import OrderedDict
+	new_state_dict = OrderedDict()
+	for k, v in state_dict.items():
+    		name = k[0:] # remove module.
+    		new_state_dict[name] = v
+	#load params
+	unet_restored.load_state_dict(state_dict,strict=False)
+	#
+	try:
+    		device_id = args.device()
+	except NameError:
+    		device_id = "cpu"
+	#
+	unet_restored.to(device_id)
+
+
+	import numpy
+	for indx in range(10):
+    		img_test,label_test = mnist_test.__getitem__(indx)
+    		out_test = unet_restored(img_test.unsqueeze(0))
+    		matplotlib.pyplot.imshow(img_test.squeeze().squeeze().detach().numpy())
+    		matplotlib.pyplot.show()
+    		print("\n\n{}\n\n".format(label_test))
+    		matplotlib.pyplot.imshow(out_test.squeeze().squeeze().detach().numpy())
+    		matplotlib.pyplot.show()
+    		numpy.save('./out_test_{}.npy'.format(23),out_test.detach().cpu().numpy())
+    		numpy.save('./img_test_{}.npy'.format(23),img_test.detach().cpu().numpy())
 #
-from collections import OrderedDict
-new_state_dict = OrderedDict()
-for k, v in state_dict.items():
-    name = k[0:] # remove module.
-    new_state_dict[name] = v
-#load params
-print("all is well till here \n\n")
-unet_restored.load_state_dict(state_dict,strict=False)
-
-
+# end if want_to_test
 #
-try:
-    device_id = args.device()
-except NameError:
-    device_id = "cpu"
 #
-unet_restored.to(device_id)
-
-
-import numpy
-for indx in range(10):
-    img_test,label_test = mnist_test.__getitem__(indx)
-    out_test = unet_restored(img_test.unsqueeze(0))
-    #matplotlib.pyplot.imshow(img_test.squeeze().squeeze().detach().numpy())
-    matplotlib.pyplot.show()
-    print("\n\n{}\n\n".format(label_test))
-    #matplotlib.pyplot.imshow(out_test.squeeze().squeeze().detach().numpy())
-    matplotlib.pyplot.show()
-    numpy.save('./out_test_{}.npy'.format(23),out_test.detach().cpu().numpy())
-    numpy.save('./img_test_{}.npy'.format(23),img_test.detach().cpu().numpy())
-    
-
-
-# In[21]:
-
-
-numpy.save('./out_test_{}.npy'.format(23),out_test.detach().cpu().numpy())
-numpy.save('./img_test_{}.npy'.format(23),img_test.detach().cpu().numpy())
-
-
-# In[25]:
-
-
-#matplotlib.pyplot.imshow(out_test.squeeze().squeeze().detach().numpy())
-
-
-
-import matplotlib
-#matplotlib.pyplot.imshow(img_test.squeeze().squeeze().detach().numpy())
-
-print("\n{}\n".format(label_test))
-
-
-
-print(label_test)
-
-
-
-
+# END OF CODE
+#
